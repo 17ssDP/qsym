@@ -45,8 +45,10 @@ public:
   UINT8 getInput(ADDRINT index);
 
   ADDRINT last_pc() { return last_pc_; }
-
-protected:
+  void setTargetList(const std::string path);
+  bool isTarget(std::string addr);
+  
+ protected:
   std::string           input_file_;
   std::vector<UINT8>    inputs_;
   std::string           out_dir_;
@@ -61,6 +63,7 @@ protected:
   uint64_t              solving_time_;
   ADDRINT               last_pc_;
   DependencyForest<Expr> dep_forest_;
+  std::set<std::string> target_branchs_;
 
   void checkOutDir();
   void readInput();
@@ -88,6 +91,7 @@ protected:
   void solveOne(z3::expr);
 
   void checkFeasible();
+
 };
 
 extern Solver* g_solver;

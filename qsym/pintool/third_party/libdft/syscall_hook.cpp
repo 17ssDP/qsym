@@ -269,6 +269,16 @@ postOpenHook(SyscallContext *ctx) {
 }
 
 void
+postOpenatHook(SyscallContext *ctx) {
+  if (unlikely((long)ctx->ret < 0))
+    return;
+
+  // ignore dynamic shared libraries
+  if (strstr((char *)ctx->arg[SYSCALL_ARG1], kInput.c_str()) != NULL)
+    kFdSet.insert((int)ctx->ret);
+}
+
+void
 postLSeekHook(SyscallContext *ctx) {
   off_t off = ctx->ret;
   int fd = ctx->arg[SYSCALL_ARG0];
@@ -335,9 +345,11 @@ postMMapHookForFile(SyscallContext *ctx)
 }
 
 void setOpenHook() {
-  // open(2), creat(2)
+  // open(2), creat(2), openat(2)
   (void)setSyscallPost(&kSyscallDesc[__NR_open],
       postOpenHook);
+  (void)setSyscallPost(&kSyscallDesc[__NR_openat],
+      postOpenatHook);
   (void)setSyscallPost(&kSyscallDesc[__NR_creat],
       postOpenHook);
   (void)setSyscallPost(&kSyscallDesc[__NR_lseek],

@@ -542,4 +542,18 @@ void Solver::checkFeasible() {
 #endif
 }
 
+void Solver::setTargetList(const std::string path) {
+  ifstream in(path);
+  std::string line;
+  if(in) {
+    while(getline(in, line)) {
+      line.erase(0,line.find_first_not_of(" "));
+      line.erase(line.find_last_not_of(" ") + 1);
+      target_branchs_.insert(line);
+    }
+  }
+  LOG_DEBUG(*(target_branchs_.begin()));
+}
+
+bool Solver::isTarget(std::string addr) { return target_branchs_.count(addr) > 0; }
 } // namespace qsym

@@ -38,7 +38,7 @@ SA_TOOL_ROOTS :=
 APP_ROOTS :=
 
 # This defines any additional object files that need to be compiled.
-OBJECT_ROOTS := 
+OBJECT_ROOTS :=
 
 
 # This defines any additional dlls (shared objects), other than the pintools, that need to be compiled.
@@ -66,8 +66,8 @@ endif
 
 TOOL_CXXFLAGS += -I$(CURDIR)
 TOOL_CXXFLAGS += -g -Wno-error=unused-function -std=c++11 -DCONFIG_CONTEXT_SENSITIVE
-TOOL_LIBS += -lz3
-
+TOOL_LIBS += -L/home/dp/qsym-area/install/lib32 -lz3
+TOOL_LIBS += -L/home/dp/qsym-area/install/lib -lz3
 ##############################################################
 #
 # Test recipes

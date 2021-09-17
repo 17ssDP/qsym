@@ -13,7 +13,7 @@
 #include "memory.h"
 #include "expr.h"
 
-namespace qsym {
+namespace qsym { 
   const int     kExitFailure = -1;
   const char*   kDlibSuffix = ".so";
 
@@ -43,6 +43,8 @@ static KNOB<string> g_opt_bitmap(KNOB_MODE_WRITEONCE, "pintool",
     "b", "", "bitmap file");
 static KNOB<int> g_opt_linearization(KNOB_MODE_WRITEONCE, "pintool",
     "l", "0", "turn on linearization");
+static KNOB<string> g_opt_target_list(KNOB_MODE_WRITEONCE, "pintool", 
+    "j", "", "target list");
 
 namespace {
 
@@ -81,7 +83,7 @@ void initializeGlobalContext(
     const std::string input,
     const std::string out_dir,
     const std::string bitmap) {
-  g_solver = new Solver(input, out_dir, bitmap);
+    g_solver = new Solver(input, out_dir, bitmap);
 
   if (g_opt_linearization.Value())
     g_expr_builder = PruneExprBuilder::create();
@@ -110,6 +112,11 @@ int main(int argc, char** argv) {
       g_opt_input.Value(),
       g_opt_outdir.Value(),
       g_opt_bitmap.Value());
+  
+  if(!g_opt_target_list.Value().empty()) {
+    g_solver->setTargetList(g_opt_target_list.Value());
+  }
+
   initializeQsym();
   PIN_StartProgram();
 

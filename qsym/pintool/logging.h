@@ -24,7 +24,7 @@ void log(const char* tag, const std::string &msg);
 
 #define LOG_DEBUG(msg) \
   do { \
-    if (isDebugMode()) \
+    if (true) \
       log("DEBUG", msg); \
   } while(0);
 

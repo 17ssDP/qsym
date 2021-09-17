@@ -2211,12 +2211,22 @@ instrumentJcc(ThreadContext* thread_ctx,
   ExprRef e = thread_ctx->computeJcc(ctx, jcc_c, inv);
   if (e) {
     ADDRINT pc = PIN_GetContextReg(ctx, REG_INST_PTR);
+    // if (!g_solver->isTarget(to_string(pc))) {
+    //   LOG_DEBUG("Ignore branch at " + hexstr(pc) + "\n");
+    //   return;
+    // }
     LOG_DEBUG("Symbolic branch at " + hexstr(pc) + ": " + e->toString() + "\n");
 #ifdef CONFIG_TRACE
     trace_addJcc(e, ctx, taken);
 #endif
     g_solver->addJcc(e, taken, pc);
   }
+  // else {
+  //   ADDRINT pc = PIN_GetContextReg(ctx, REG_INST_PTR);
+  //   if(pc == 7178954) {
+  //     LOG_DEBUG("Meet branch 7178954\n");
+  //   }
+  // }
 }
 
 void PIN_FAST_ANALYSIS_CALL

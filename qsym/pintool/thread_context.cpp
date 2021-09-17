@@ -61,6 +61,7 @@ inline ExprRef createAddrExpr(ExprRef expr_base, ExprRef expr_index) {
 
 void ThreadContext::onSyscallEnter(CONTEXT* ctx, SYSCALL_STANDARD std) {
   size_t syscall_nr = PIN_GetSyscallNumber(ctx, std);
+  LOG_INFO("incoming syscall (num=" + decstr(syscall_nr) + ")\n");
   if (syscall_nr >= kSyscallMax) {
     LOG_INFO("unknown syscall (num=" + decstr(syscall_nr) + ")\n");
     syscall_ctx_.nr = -1;

@@ -12,6 +12,7 @@ def parse_args():
     p.add_argument("-b", dest="bitmap", help="A bitmap file")
     p.add_argument("cmd", nargs="+",
             help="Command to execute: use %s to denote a file" % utils.AT_FILE)
+    p.add_argument("-j", dest="target_list", help="A target list file")
     return p.parse_args()
 
 def main():
@@ -19,8 +20,9 @@ def main():
     q = Executor(args.cmd,
             args.input_file,
             args.output_dir,
-            args.bitmap)
-    q.run()
+            args.bitmap,
+            args.target_list)
+    q.run(120)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)

@@ -268,6 +268,8 @@ public:
     // if jcc uses two flags from different operations,
     // then it could be incorrect, but it's not normal
     UINT32 eflags = getEflagsFromJcc(jcc);
+    // LOG_INFO("valid_set_ = " + std::to_string(valid_set_) +
+    //          "eflags = " + std::to_string(eflags) + "\n");
     return (valid_set_ & eflags) == eflags;
   }
 

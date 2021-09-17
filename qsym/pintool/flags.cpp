@@ -230,8 +230,13 @@ void Eflags::set(OpKind kind, ExprRef expr_result,
 }
 
 ExprRef Eflags::computeJcc(const CONTEXT* ctx, JccKind jcc_c, bool inv) {
-  if (!isValid(jcc_c))
+  // ADDRINT pc = PIN_GetContextReg(ctx, REG_INST_PTR);
+  if (!isValid(jcc_c)) {
+    // if (pc == 7178954) {
+    //   LOG_DEBUG("Branch 7178954 invalid\n");
+    // }
     return NULL;
+  }
   ExprRef e = computeFastJcc(ctx, jcc_c, inv);
   if (e == NULL)
     e = computeSlowJcc(ctx, jcc_c, inv);
