@@ -12,6 +12,7 @@ pintool.log
 /build
 /venv
 /.cache
+/gofuzz
 
 # pytest
 .pytest_cache
