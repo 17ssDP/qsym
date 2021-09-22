@@ -1,4 +1,4 @@
-#!/home/dp/qsym-area/qsym/gofuzz/bin/python2
+#!/home/dp/qsym-area/qsym/gofuzz/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
