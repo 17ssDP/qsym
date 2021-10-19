@@ -183,7 +183,7 @@ void Solver::addJcc(ExprRef e, bool taken, ADDRINT pc) {
     is_interesting = isInterestingJcc(e, taken, pc);
 
   if (is_interesting)
-    negatePath(e, taken);
+    negatePath(e, taken, pc);
   addConstraint(e, taken, is_interesting);
 }
 
@@ -515,7 +515,7 @@ bool Solver::isInterestingJcc(ExprRef rel_expr, bool taken, ADDRINT pc) {
   return interesting;
 }
 
-void Solver::negatePath(ExprRef e, bool taken) {
+void Solver::negatePath(ExprRef e, bool taken, ADDRINT pc) {
   reset();
   syncConstraints(e);
   addToSolver(e, !taken);

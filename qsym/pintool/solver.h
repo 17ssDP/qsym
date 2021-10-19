@@ -87,7 +87,7 @@ public:
   ExprRef getRangeConstraint(ExprRef e, bool is_unsigned);
 
   bool isInterestingJcc(ExprRef, bool, ADDRINT);
-  void negatePath(ExprRef, bool);
+  void negatePath(ExprRef, bool, ADDRINT);
   void solveOne(z3::expr);
 
   void checkFeasible();

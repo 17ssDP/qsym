@@ -51,7 +51,9 @@ export LD_LIBRARY_PATH=$elf_libs:$cpp_libs:$LD_LIBRARY_PATH
 
 if [ $(arch) == "x86_64" ]
 then
+    echo "$origin"/intel64/bin/pinbin -p32 "$origin"/ia32/bin/pinbin "${@}"
     exec "$origin"/intel64/bin/pinbin -p32 "$origin"/ia32/bin/pinbin "${@}"
 else
+    echo "$origin"/ia32/bin/pinbin -p64 "$origin"/intel64/bin/pinbin "${@}"
     exec "$origin"/ia32/bin/pinbin -p64 "$origin"/intel64/bin/pinbin "${@}"
 fi
