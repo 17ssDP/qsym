@@ -1,6 +1,8 @@
-#include <set>
-#include <byteswap.h>
 #include "solver.h"
+
+#include <byteswap.h>
+
+#include <set>
 
 namespace qsym {
 
@@ -8,10 +10,10 @@ namespace {
 
 const uint64_t kUsToS = 1000000;
 const int kSessionIdLength = 32;
-const unsigned kSolverTimeout = 10000; // 10 seconds
+const unsigned kSolverTimeout = 10000;  // 10 seconds
 
 std::string toString6digit(INT32 val) {
-  char buf[6 + 1]; // ndigit + 1
+  char buf[6 + 1];  // ndigit + 1
   snprintf(buf, 7, "%06d", val);
   buf[6] = '\0';
   return std::string(buf);
@@ -23,12 +25,12 @@ uint64_t getTimeStamp() {
   return tv.tv_sec * kUsToS + tv.tv_usec;
 }
 
-void parseConstSym(ExprRef e, Kind &op, ExprRef& expr_sym, ExprRef& expr_const) {
+void parseConstSym(ExprRef e, Kind& op, ExprRef& expr_sym,
+                   ExprRef& expr_const) {
   for (INT32 i = 0; i < 2; i++) {
     expr_sym = e->getChild(i);
     expr_const = e->getChild(1 - i);
-    if (!isConstant(expr_sym)
-        && isConstant(expr_const)) {
+    if (!isConstant(expr_sym) && isConstant(expr_const)) {
       op = i == 0 ? e->kind() : swapKind(e->kind());
       return;
     }
@@ -36,9 +38,8 @@ void parseConstSym(ExprRef e, Kind &op, ExprRef& expr_sym, ExprRef& expr_const) 
   UNREACHABLE();
 }
 
-void getCanonicalExpr(ExprRef e,
-    ExprRef* canonical,
-    llvm::APInt* adjustment=NULL) {
+void getCanonicalExpr(ExprRef e, ExprRef* canonical,
+                      llvm::APInt* adjustment = NULL) {
   ExprRef first = NULL;
   ExprRef second = NULL;
   // e == Const + Sym --> canonical == Sym
@@ -50,54 +51,48 @@ void getCanonicalExpr(ExprRef e,
       if (isConstant(first)) {
         *canonical = second;
         if (adjustment != NULL)
-          *adjustment =
-            static_pointer_cast<ConstantExpr>(first)->value();
+          *adjustment = static_pointer_cast<ConstantExpr>(first)->value();
         return;
-      case Sub:
-        // C_0 - Sym
-        first = e->getFirstChild();
-        second = e->getSecondChild();
-        // XXX: need to handle reference count
-        if (isConstant(first)) {
-          *canonical = g_expr_builder->createNeg(second);
-          if (adjustment != NULL)
-            *adjustment = static_pointer_cast<ConstantExpr>(first)->value();
-          return;
-        }
+        case Sub:
+          // C_0 - Sym
+          first = e->getFirstChild();
+          second = e->getSecondChild();
+          // XXX: need to handle reference count
+          if (isConstant(first)) {
+            *canonical = g_expr_builder->createNeg(second);
+            if (adjustment != NULL)
+              *adjustment = static_pointer_cast<ConstantExpr>(first)->value();
+            return;
+          }
       }
     default:
       break;
   }
-  if (adjustment != NULL)
-    *adjustment = llvm::APInt(e->bits(), 0);
+  if (adjustment != NULL) *adjustment = llvm::APInt(e->bits(), 0);
   *canonical = e;
 }
 
 inline bool isEqual(ExprRef e, bool taken) {
-  return (e->kind() == Equal && taken) ||
-    (e->kind() == Distinct && !taken);
+  return (e->kind() == Equal && taken) || (e->kind() == Distinct && !taken);
 }
 
-} // namespace
+}  // namespace
 
-Solver::Solver(
-    const std::string input_file,
-    const std::string out_dir,
-    const std::string bitmap)
-  : input_file_(input_file)
-  , inputs_()
-  , out_dir_(out_dir)
-  , context_(g_z3_context)
-  , solver_(z3::solver(context_, "QF_BV"))
-  , num_generated_(0)
-  , trace_(bitmap)
-  , last_interested_(false)
-  , syncing_(false)
-  , start_time_(getTimeStamp())
-  , solving_time_(0)
-  , last_pc_(0)
-  , dep_forest_()
-{
+Solver::Solver(const std::string input_file, const std::string out_dir,
+               const std::string bitmap)
+    : input_file_(input_file),
+      inputs_(),
+      out_dir_(out_dir),
+      context_(g_z3_context),
+      solver_(z3::solver(context_, "QF_BV")),
+      num_generated_(0),
+      trace_(bitmap),
+      last_interested_(false),
+      syncing_(false),
+      start_time_(getTimeStamp()),
+      solving_time_(0),
+      last_pc_(0),
+      dep_forest_() {
   // Set timeout for solver
   z3::params p(context_);
   p.set(":timeout", kSolverTimeout);
@@ -107,34 +102,25 @@ Solver::Solver(
   readInput();
 }
 
-void Solver::push() {
-  solver_.push();
-}
+void Solver::push() { solver_.push(); }
 
-void Solver::reset() {
-  solver_.reset();
-}
+void Solver::reset() { solver_.reset(); }
 
-void Solver::pop() {
-  solver_.pop();
-}
+void Solver::pop() { solver_.pop(); }
 
 void Solver::add(z3::expr expr) {
-  if (!expr.is_const())
-    solver_.add(expr.simplify());
+  if (!expr.is_const()) solver_.add(expr.simplify());
 }
 
 z3::check_result Solver::check() {
   uint64_t before = getTimeStamp();
   z3::check_result res;
-  LOG_STAT(
-      "SMT: { \"solving_time\": " + decstr(solving_time_) + ", "
-      + "\"total_time\": " + decstr(before - start_time_) + " }\n");
+  LOG_STAT("SMT: { \"solving_time\": " + decstr(solving_time_) + ", " +
+           "\"total_time\": " + decstr(before - start_time_) + " }\n");
   // LOG_DEBUG("Constraints: " + solver_.to_smt2() + "\n");
   try {
     res = solver_.check();
-  }
-  catch(z3::exception e) {
+  } catch (z3::exception e) {
     // https://github.com/Z3Prover/z3/issues/419
     // timeout can cause exception
     res = z3::unknown;
@@ -150,8 +136,7 @@ bool Solver::checkAndSave(const std::string& postfix) {
   if (check() == z3::sat) {
     saveValues(postfix);
     return true;
-  }
-  else {
+  } else {
     LOG_DEBUG("unsat\n");
     return false;
   }
@@ -161,12 +146,11 @@ void Solver::addJcc(ExprRef e, bool taken, ADDRINT pc) {
   // Save the last instruction pointer for debugging
   last_pc_ = pc;
 
-  if (e->isConcrete())
-    return;
+  if (e->isConcrete()) return;
 
   // if e == Bool(true), then ignore
   if (e->kind() == Bool) {
-    assert(!(castAs<BoolExpr>(e)->value()  ^ taken));
+    assert(!(castAs<BoolExpr>(e)->value() ^ taken));
     return;
   }
 
@@ -178,12 +162,10 @@ void Solver::addJcc(ExprRef e, bool taken, ADDRINT pc) {
   if (pc == 0) {
     // If addJcc() is called by special case, then rely on last_interested_
     is_interesting = last_interested_;
-  }
-  else
+  } else
     is_interesting = isInterestingJcc(e, taken, pc);
 
-  if (is_interesting)
-    negatePath(e, taken, pc);
+  if (is_interesting) negatePath(e, taken, pc);
   addConstraint(e, taken, is_interesting);
 }
 
@@ -193,16 +175,14 @@ void Solver::addAddr(ExprRef e, ADDRINT addr) {
 }
 
 void Solver::addAddr(ExprRef e, llvm::APInt addr) {
-  if (e->isConcrete())
-    return;
+  if (e->isConcrete()) return;
 
   if (last_interested_) {
     reset();
     // TODO: add optimize in z3
     syncConstraints(e);
-    if (check() != z3::sat)
-      return;
-    z3::expr &z3_expr = e->toZ3Expr();
+    if (check() != z3::sat) return;
+    z3::expr& z3_expr = e->toZ3Expr();
 
     // TODO: add unbound case
     z3::expr min_expr = getMinValue(z3_expr);
@@ -220,8 +200,7 @@ void Solver::addValue(ExprRef e, ADDRINT val) {
 }
 
 void Solver::addValue(ExprRef e, llvm::APInt val) {
-  if (e->isConcrete())
-    return;
+  if (e->isConcrete()) return;
 
 #ifdef CONFIG_TRACE
   trace_addValue(e, val);
@@ -237,7 +216,8 @@ void Solver::solveAll(ExprRef e, llvm::APInt val) {
   if (last_interested_) {
     std::string postfix = "";
     ExprRef expr_val = g_expr_builder->createConstant(val, e->bits());
-    ExprRef expr_concrete = g_expr_builder->createBinaryExpr(Equal, e, expr_val);
+    ExprRef expr_concrete =
+        g_expr_builder->createBinaryExpr(Equal, e, expr_val);
 
     reset();
     syncConstraints(e);
@@ -251,9 +231,8 @@ void Solver::solveAll(ExprRef e, llvm::APInt val) {
     }
 
     z3::expr z3_expr = e->toZ3Expr();
-    while(true) {
-      if (!checkAndSave(postfix))
-        break;
+    while (true) {
+      if (!checkAndSave(postfix)) break;
       z3::expr value = getPossibleValue(z3_expr);
       add(value != z3_expr);
     }
@@ -274,23 +253,21 @@ void Solver::checkOutDir() {
   }
 
   struct stat info;
-  if (stat(out_dir_.c_str(), &info) != 0
-      || !(info.st_mode & S_IFDIR)) {
+  if (stat(out_dir_.c_str(), &info) != 0 || !(info.st_mode & S_IFDIR)) {
     LOG_FATAL("No such directory\n");
     exit(-1);
   }
 }
 
 void Solver::readInput() {
-  std::ifstream ifs (input_file_, std::ifstream::in | std::ifstream::binary);
+  std::ifstream ifs(input_file_, std::ifstream::in | std::ifstream::binary);
   if (ifs.fail()) {
     LOG_FATAL("Cannot open an input file\n");
     exit(-1);
   }
 
   char ch;
-  while (ifs.get(ch))
-    inputs_.push_back((UINT8)ch);
+  while (ifs.get(ch)) inputs_.push_back((UINT8)ch);
 }
 
 std::vector<UINT8> Solver::getConcreteValues() {
@@ -320,20 +297,18 @@ void Solver::saveValues(const std::string& postfix) {
     return;
   }
 
-  std::string fname = out_dir_+ "/" + toString6digit(num_generated_);
+  std::string fname = out_dir_ + "/" + toString6digit(num_generated_);
   // Add postfix to record where it is genereated
-  if (!postfix.empty())
-      fname = fname + "-" + postfix;
+  if (!postfix.empty()) fname = fname + "-" + postfix;
   ofstream of(fname, std::ofstream::out | std::ofstream::binary);
   LOG_INFO("New testcase: " + fname + "\n");
-  if (of.fail())
-    LOG_FATAL("Unable to open a file to write results\n");
+  if (of.fail()) LOG_FATAL("Unable to open a file to write results\n");
 
-      // TODO: batch write
-      for (unsigned i = 0; i < values.size(); i++) {
-        char val = values[i];
-        of.write(&val, sizeof(val));
-      }
+  // TODO: batch write
+  for (unsigned i = 0; i < values.size(); i++) {
+    char val = values[i];
+    of.write(&val, sizeof(val));
+  }
 
   of.close();
   num_generated_++;
@@ -359,8 +334,7 @@ z3::expr Solver::getMinValue(z3::expr& z3_expr) {
     if (checkAndSave()) {
       value = getPossibleValue(z3_expr);
       solver_.add(z3::ult(z3_expr, value));
-    }
-    else
+    } else
       break;
   }
   pop();
@@ -374,8 +348,7 @@ z3::expr Solver::getMaxValue(z3::expr& z3_expr) {
     if (checkAndSave()) {
       value = getPossibleValue(z3_expr);
       solver_.add(z3::ugt(z3_expr, value));
-    }
-    else
+    } else
       break;
   }
   pop();
@@ -384,8 +357,7 @@ z3::expr Solver::getMaxValue(z3::expr& z3_expr) {
 
 void Solver::addToSolver(ExprRef e, bool taken) {
   e->simplify();
-  if (!taken)
-    e = g_expr_builder->createLNot(e);
+  if (!taken) e = g_expr_builder->createLNot(e);
   add(e->toZ3Expr());
 }
 
@@ -393,8 +365,7 @@ void Solver::syncConstraints(ExprRef e) {
   std::set<std::shared_ptr<DependencyTree<Expr>>> forest;
   DependencySet* deps = e->getDependencies();
 
-  for (const size_t& index : *deps)
-    forest.insert(dep_forest_.find(index));
+  for (const size_t& index : *deps) forest.insert(dep_forest_.find(index));
 
   for (std::shared_ptr<DependencyTree<Expr>> tree : forest) {
     std::vector<std::shared_ptr<Expr>> nodes = tree->getNodes();
@@ -414,7 +385,8 @@ void Solver::syncConstraints(ExprRef e) {
 
         // One of range expressions should be non-NULL
         if (!valid)
-          LOG_INFO(std::string(__func__) + ": Incorrect constraints are inserted\n");
+          LOG_INFO(std::string(__func__) +
+                   ": Incorrect constraints are inserted\n");
       }
     }
   }
@@ -427,8 +399,7 @@ void Solver::addConstraint(ExprRef e, bool taken, bool is_interesting) {
     addConstraint(NE->expr(), !taken, is_interesting);
     return;
   }
-  if (!addRangeConstraint(e, taken))
-    addNormalConstraint(e, taken);
+  if (!addRangeConstraint(e, taken)) addNormalConstraint(e, taken);
 }
 
 void Solver::addConstraint(ExprRef e) {
@@ -437,14 +408,12 @@ void Solver::addConstraint(ExprRef e) {
     QSYM_ASSERT(castAs<BoolExpr>(e)->value());
     return;
   }
-  if (e->isConcrete())
-    return;
+  if (e->isConcrete()) return;
   dep_forest_.addNode(e);
 }
 
 bool Solver::addRangeConstraint(ExprRef e, bool taken) {
-  if (!isConstSym(e))
-    return false;
+  if (!isConstSym(e)) return false;
 
   Kind kind = Invalid;
   ExprRef expr_sym, expr_const;
@@ -454,32 +423,27 @@ bool Solver::addRangeConstraint(ExprRef e, bool taken) {
   getCanonicalExpr(expr_sym, &canonical, &adjustment);
   llvm::APInt value = static_pointer_cast<ConstantExpr>(expr_const)->value();
 
-  if (!taken)
-    kind = negateKind(kind);
+  if (!taken) kind = negateKind(kind);
 
-  canonical->addConstraint(kind, value,
-      adjustment);
+  canonical->addConstraint(kind, value, adjustment);
   addConstraint(canonical);
-  //updated_exprs_.insert(canonical);
+  // updated_exprs_.insert(canonical);
   return true;
 }
 
 void Solver::addNormalConstraint(ExprRef e, bool taken) {
-  if (!taken)
-    e = g_expr_builder->createLNot(e);
+  if (!taken) e = g_expr_builder->createLNot(e);
   addConstraint(e);
 }
 
 ExprRef Solver::getRangeConstraint(ExprRef e, bool is_unsigned) {
   Kind lower_kind = is_unsigned ? Uge : Sge;
   Kind upper_kind = is_unsigned ? Ule : Sle;
-  RangeSet *rs = e->getRangeSet(is_unsigned);
-  if (rs == NULL)
-    return NULL;
+  RangeSet* rs = e->getRangeSet(is_unsigned);
+  if (rs == NULL) return NULL;
 
   ExprRef expr = NULL;
-  for (auto i = rs->begin(), end = rs->end();
-      i != end; i++) {
+  for (auto i = rs->begin(), end = rs->end(); i != end; i++) {
     const llvm::APSInt& from = i->From();
     const llvm::APSInt& to = i->To();
     ExprRef bound = NULL;
@@ -488,9 +452,7 @@ ExprRef Solver::getRangeConstraint(ExprRef e, bool is_unsigned) {
       // can simplify this case
       ExprRef imm = g_expr_builder->createConstant(from, e->bits());
       bound = g_expr_builder->createEqual(e, imm);
-    }
-    else
-    {
+    } else {
       ExprRef lb_imm = g_expr_builder->createConstant(i->From(), e->bits());
       ExprRef ub_imm = g_expr_builder->createConstant(i->To(), e->bits());
       ExprRef lb = g_expr_builder->createBinaryExpr(lower_kind, e, lb_imm);
@@ -506,7 +468,6 @@ ExprRef Solver::getRangeConstraint(ExprRef e, bool is_unsigned) {
 
   return expr;
 }
-
 
 bool Solver::isInterestingJcc(ExprRef rel_expr, bool taken, ADDRINT pc) {
   bool interesting = trace_.isInterestingBranch(pc, taken);
@@ -545,9 +506,9 @@ void Solver::checkFeasible() {
 void Solver::setTargetList(const std::string path) {
   ifstream in(path);
   std::string line;
-  if(in) {
-    while(getline(in, line)) {
-      line.erase(0,line.find_first_not_of(" "));
+  if (in) {
+    while (getline(in, line)) {
+      line.erase(0, line.find_first_not_of(" "));
       line.erase(line.find_last_not_of(" ") + 1);
       target_branchs_.insert(line);
     }
@@ -555,5 +516,21 @@ void Solver::setTargetList(const std::string path) {
   LOG_DEBUG(*(target_branchs_.begin()));
 }
 
-bool Solver::isTarget(std::string addr) { return target_branchs_.count(addr) > 0; }
-} // namespace qsym
+bool Solver::targetIsEmpty() { return target_branchs_.empty(); }
+
+bool Solver::isTarget(std::string addr) {
+  return true;
+  if (target_branchs_.empty()) {
+    return false;
+  }
+  if (target_branchs_.size() != 2) {
+    return false;
+  }
+  // LOG_DEBUG("target_branches_begin() " + *target_branchs_.begin() + "\n");
+  std::set<std::string>::iterator lower = target_branchs_.begin();
+  return (*lower).compare(addr) <= 0 &&
+         (*(++lower)).compare(addr) > 0;
+  return false;
+}
+
+}  // namespace qsym

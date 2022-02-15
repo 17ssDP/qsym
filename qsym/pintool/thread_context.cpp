@@ -1,4 +1,6 @@
 #include "thread_context.h"
+#include <chrono>
+#include <ctime>
 
 namespace qsym {
 
@@ -59,9 +61,50 @@ inline ExprRef createAddrExpr(ExprRef expr_base, ExprRef expr_index) {
 
 } // namespace
 
-void ThreadContext::onSyscallEnter(CONTEXT* ctx, SYSCALL_STANDARD std) {
+void ThreadContext::onSyscallEnter(CONTEXT* ctx, SYSCALL_STANDARD std,
+                                   THREADID tid) {
+  // time_t now = time(NULL);
+  // tm* tm_t = localtime(&now);
+  // std::stringstream ss;
+  // ss << "year:" << tm_t->tm_year + 1900 << " month:" << tm_t->tm_mon + 1
+  //    << " day:" << tm_t->tm_mday << " hour:" << tm_t->tm_hour
+  //    << " minute:" << tm_t->tm_min << " second:" << tm_t->tm_sec;
+  std::chrono::time_point<std::chrono::system_clock> now =
+      std::chrono::system_clock::now();
+  auto duration = now.time_since_epoch();
+
+  typedef std::chrono::duration<
+      int,
+      std::ratio_multiply<std::chrono::hours::period, std::ratio<8> >::type>
+      Days; /* UTC: +8:00 */
+
+  Days days = std::chrono::duration_cast<Days>(duration);
+  duration -= days;
+  auto hours = std::chrono::duration_cast<std::chrono::hours>(duration);
+  duration -= hours;
+  auto minutes = std::chrono::duration_cast<std::chrono::minutes>(duration);
+  duration -= minutes;
+  auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+  duration -= seconds;
+  auto milliseconds =
+      std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+  duration -= milliseconds;
+  auto microseconds =
+      std::chrono::duration_cast<std::chrono::microseconds>(duration);
+  duration -= microseconds;
+  auto nanoseconds =
+      std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
+
+  std::stringstream ss;
+  ss << hours.count() << ":" << minutes.count() << ":" << seconds.count()
+                           << ":" << milliseconds.count() << ":"
+                           << microseconds.count() << ":" << nanoseconds.count();
   size_t syscall_nr = PIN_GetSyscallNumber(ctx, std);
-  LOG_INFO("incoming syscall (num=" + decstr(syscall_nr) + ")\n");
+  LOG_INFO("Thread " + decstr(tid) + "incoming syscall (num=" + decstr(syscall_nr) + ")" + "Time: " + ss.str() +"\n");
+  // if(tid != 0) {
+  //   LOG_INFO("Ignore this syscall\n");
+  //   return;
+  // }
   if (syscall_nr >= kSyscallMax) {
     LOG_INFO("unknown syscall (num=" + decstr(syscall_nr) + ")\n");
     syscall_ctx_.nr = -1;
@@ -81,8 +124,12 @@ void ThreadContext::onSyscallEnter(CONTEXT* ctx, SYSCALL_STANDARD std) {
   }
 }
 
-void ThreadContext::onSyscallExit(CONTEXT* ctx, SYSCALL_STANDARD std) {
+void ThreadContext::onSyscallExit(CONTEXT* ctx, SYSCALL_STANDARD std,
+                                  THREADID tid) {
   size_t syscall_nr = syscall_ctx_.nr;
+  // if (tid != 0) {
+  //   return;
+  // }
   if (syscall_nr >= kSyscallMax) {
     LOG_INFO("unknown syscall (num=" + decstr(syscall_nr) + ")\n");
     return;

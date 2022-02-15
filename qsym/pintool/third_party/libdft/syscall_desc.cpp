@@ -59,6 +59,7 @@ static void postLookupDcookieHook(SyscallContext *ctx);
 static void postMqTimedReceiveHook(SyscallContext *ctx);
 static void postReadLinkAtHook(SyscallContext*);
 static void postEpollWaitHook(SyscallContext *ctx);
+static void postNanosleepHook(SyscallContext *ctx);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,33)
 static void postRecvMmsgHook(SyscallContext *ctx);
 #endif
@@ -131,6 +132,8 @@ initializeSyscallDesc() {
   kSyscallDesc[__NR_umask] = SyscallDesc{1, 0, 0, {0, 0, 0, 0, 0, 0}, NULL, NULL};
   kSyscallDesc[__NR_chroot] = SyscallDesc{1, 0, 0, {0, 0, 0, 0, 0, 0}, NULL, NULL};
   kSyscallDesc[__NR_ustat] = SyscallDesc{2, 0, 1, {0, sizeof(struct ustat), 0, 0, 0, 0}, NULL, NULL};
+//  kSyscallDesc[__NR_ustat] =
+      SyscallDesc{2, 0, 1, {0, 0, 0, 0, 0, 0}, NULL, NULL};
   kSyscallDesc[__NR_dup2] = SyscallDesc{2, 0, 0, {0, 0, 0, 0, 0, 0}, NULL, NULL};
   kSyscallDesc[__NR_getppid] = SyscallDesc{0, 0, 0, {0, 0, 0, 0, 0, 0}, NULL, NULL};
   kSyscallDesc[__NR_getpgrp] = SyscallDesc{0, 0, 0, {0, 0, 0, 0, 0, 0}, NULL, NULL};
@@ -438,8 +441,8 @@ SetSyscallPre(SyscallDesc *desc, void (* pre)(SyscallContext*))
 	desc->pre = pre;
 	desc->save_args = 1;
 	return 0;
-}
 
+}
 int
 setSyscallPost(SyscallDesc *desc, void (* post)(SyscallContext*))
 {
@@ -606,6 +609,11 @@ postReadvHook(SyscallContext *ctx)
 		tot -= iov_tot;
 	}
 }
+
+// static void 
+// postNanosleepHook(SyscallContext *ctx) {
+
+// }
 
 static void
 postEpollWaitHook(SyscallContext *ctx) {

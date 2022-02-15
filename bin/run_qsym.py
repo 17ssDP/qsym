@@ -22,7 +22,7 @@ def main():
             args.output_dir,
             args.bitmap,
             args.target_list)
-    q.run(120)
+    q.run(1200)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)

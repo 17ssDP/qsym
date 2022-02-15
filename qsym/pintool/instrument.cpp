@@ -8,6 +8,9 @@
 // bit position
 namespace qsym {
 
+extern PIN_LOCK pinlock;
+extern bool enter_main;
+
 void instrumentBBL(
     ThreadContext *thread_ctx,
     const CONTEXT* ctx) {
@@ -1218,6 +1221,18 @@ instrumentCall(
   g_memory.clearExprFromMem(addr, size);
 }
 
+void PIN_FAST_ANALYSIS_CALL 
+printFuncName(ADDRINT target) {
+  string name = RTN_FindNameByAddress(target);
+  LOG_INFO("Call " + name + "at " + hexstr(target) + "\n");
+}
+
+void PIN_FAST_ANALYSIS_CALL 
+printIndirectFuncName(ADDRINT target, BOOL taken) {
+  if (!taken) return;
+  printFuncName(target);
+}
+
 void PIN_FAST_ANALYSIS_CALL
 instrumentCbw(ThreadContext* thread_ctx,
     const CONTEXT* ctx, REG to, REG from) {
@@ -2208,25 +2223,28 @@ instrumentJcc(ThreadContext* thread_ctx,
     const CONTEXT* ctx,
     bool taken, ADDRINT target,
     JccKind jcc_c, bool inv) {
+//  LOG_DEBUG("Enter instrumentJcc and call computeJcc\n");
   ExprRef e = thread_ctx->computeJcc(ctx, jcc_c, inv);
+//  LOG_DEBUG("After call computeJcc\n");
   if (e) {
     ADDRINT pc = PIN_GetContextReg(ctx, REG_INST_PTR);
-    // if (!g_solver->isTarget(to_string(pc))) {
-    //   LOG_DEBUG("Ignore branch at " + hexstr(pc) + "\n");
-    //   return;
-    // }
-    LOG_DEBUG("Symbolic branch at " + hexstr(pc) + ": " + e->toString() + "\n");
+    if (!g_solver->isTarget(to_string(pc)) && !g_solver->isTarget(to_string(target))) {
+      LOG_DEBUG("Ignore branch at " + hexstr(pc) + "; " + "target" + to_string(target) + "\n");
+      return;
+    }
+    LOG_DEBUG("Symbolic branch at " + hexstr(pc) + " " + to_string(pc) + ": " + e->toString() + "\n");
 #ifdef CONFIG_TRACE
     trace_addJcc(e, ctx, taken);
 #endif
     g_solver->addJcc(e, taken, pc);
+  } else {
+    ADDRINT pc = PIN_GetContextReg(ctx, REG_INST_PTR);
+    if (g_solver->isTarget(to_string(pc)) ||
+        g_solver->isTarget(to_string(target))) {
+      LOG_DEBUG("Meet target " + to_string(pc) + " or " + to_string(target) +
+                "but not symbolic" + "\n");
+    }
   }
-  // else {
-  //   ADDRINT pc = PIN_GetContextReg(ctx, REG_INST_PTR);
-  //   if(pc == 7178954) {
-  //     LOG_DEBUG("Meet branch 7178954\n");
-  //   }
-  // }
 }
 
 void PIN_FAST_ANALYSIS_CALL
@@ -4179,6 +4197,45 @@ instrumentRet(
     const CONTEXT* ctx,
     ADDRINT branch_addr) {
   g_call_stack_manager.visitRet(branch_addr);
+}
+
+void PIN_FAST_ANALYSIS_CALL 
+instrumentFoo(
+    ThreadContext* thread_ctx, 
+    const CONTEXT* ctx, 
+    ADDRINT* arg1,
+    ADDRINT arg2) {
+  ExprRef e = thread_ctx->getExprFromRegAddr(*arg1);
+  if (e == NULL) {
+    LOG_DEBUG("Foo args not symbolic\n");
+  }else {
+    LOG_DEBUG("Foo args symbolic\n");
+  }
+  ExprRef cons = g_expr_builder->createConstant(arg2, e->bits());
+  ExprRef euqalExpr = g_expr_builder->createEqual(e, cons);
+  ADDRINT pc = PIN_GetContextReg(ctx, REG_INST_PTR);
+  LOG_DEBUG("Symbolic Foo at " + hexstr(pc) + ": " + euqalExpr->toString() + "\n");
+  g_solver->addJcc(euqalExpr, false, pc);
+  LOG_DEBUG("Foo args " + hexstr(arg1) + " " + hexstr(arg2) + "\n");
+}
+
+void PIN_FAST_ANALYSIS_CALL 
+instrumentMainEnter(ThreadContext* thread_ctx,
+               const CONTEXT* ctx, ADDRINT* arg1,
+               ADDRINT arg2) {
+  LOG_DEBUG("Enter main.main func");
+  THREADID tid = PIN_ThreadId();
+  PIN_GetLock(&pinlock, tid + 1);
+  enter_main = true;
+  PIN_ReleaseLock(&pinlock);
+}
+
+void PIN_FAST_ANALYSIS_CALL 
+instrumentMainReturn(ThreadContext* thread_ctx,
+               const CONTEXT* ctx, ADDRINT* arg1,
+               ADDRINT arg2) {
+  LOG_DEBUG("Return from main.main func");
+  PIN_Detach();
 }
 
 } // namespace qsym

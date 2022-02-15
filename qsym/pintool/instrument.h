@@ -146,6 +146,12 @@ instrumentCall(
     ADDRINT addr,
     UINT size);
 
+void PIN_FAST_ANALYSIS_CALL 
+printFuncName(ADDRINT target);
+
+void PIN_FAST_ANALYSIS_CALL 
+printIndirectFuncName(ADDRINT target, BOOL taken);
+
 void PIN_FAST_ANALYSIS_CALL
 instrumentCbw(ThreadContext* thread_ctx,
     const CONTEXT* ctx, REG to, REG from);
@@ -1082,6 +1088,20 @@ instrumentRet(
     const CONTEXT* ctx,
     ADDRINT branch_addr);
 
+void PIN_FAST_ANALYSIS_CALL 
+instrumentFoo(ThreadContext* thread_ctx,
+              const CONTEXT* ctx, 
+              ADDRINT* arg1,
+              ADDRINT arg2);
+
+void PIN_FAST_ANALYSIS_CALL 
+instrumentMainEnter(ThreadContext* thread_ctx,
+                                           const CONTEXT* ctx, ADDRINT* arg1,
+                                           ADDRINT arg2);
+void PIN_FAST_ANALYSIS_CALL 
+instrumentMainReturn(ThreadContext* thread_ctx,
+                                           const CONTEXT* ctx, ADDRINT* arg1,
+                                           ADDRINT arg2);
 } // namespace qsym
 
 #endif // QSYM_INSTRUMENT_H_

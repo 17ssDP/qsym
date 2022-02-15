@@ -23,6 +23,10 @@ namespace qsym {
   Solver        *g_solver;
   ExprBuilder   *g_expr_builder;
   CallStackManager g_call_stack_manager;
+
+  PIN_LOCK      pinlock;
+  bool          enter_main = false;
+  ADDRINT       main_addr;
 }
 
 #define SYS_SOCKET 1
@@ -101,6 +105,7 @@ int main(int argc, char** argv) {
 
   if (!checkOpt())
     goto err;
+  LOG_INFO("Input file name " + g_opt_input.Value());
 
   hookSyscalls(
         g_opt_stdin.Value() != 0,
@@ -113,9 +118,17 @@ int main(int argc, char** argv) {
       g_opt_outdir.Value(),
       g_opt_bitmap.Value());
   
-  if(!g_opt_target_list.Value().empty()) {
-    g_solver->setTargetList(g_opt_target_list.Value());
-  }
+  // if(!g_opt_target_list.Value().empty()) {
+  //   g_solver->setTargetList(g_opt_target_list.Value());
+  // }else {
+  //   LOG_INFO("No target list is specified\n");
+  //   goto err;
+  // }
+
+  // if(g_solver->targetIsEmpty()) {
+  //   LOG_INFO("Empty target list\n");
+  //   goto err;
+  // }
 
   initializeQsym();
   PIN_StartProgram();

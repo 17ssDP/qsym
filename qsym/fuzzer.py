@@ -19,15 +19,16 @@ import minimizer
 import utils
 import client
 
-DEFAULT_TIMEOUT = 180
-MAX_TIMEOUT = 10 * 60  # 10 minutes
+DEFAULT_TIMEOUT = 600 * 2 # 20 minutes
+MAX_TIMEOUT = 60 * 60  # 120 minutes
 TARGET_FILE = utils.AT_FILE
 
 MAX_ERROR_REPORTS = 30
 MAX_CRASH_REPORTS = 30
 
 # minimum number of hang files to increase timeout
-MIN_HANG_FILES = 30
+# MIN_HANG_FILES = 30
+MIN_HANG_FILES = -1
 
 logger = logging.getLogger('qsym.fuzzer')
 
@@ -98,6 +99,7 @@ class FuzzerExecutorState(object):
 
     def increase_timeout(self):
         old_timeout = self.timeout
+        logger.debug("old timeout is %d and max timeout is %d" % (old_timeout, MAX_TIMEOUT))
         if self.timeout < MAX_TIMEOUT:
             self.timeout *= 2
             logger.debug("Increase timeout %d -> %d" %
@@ -132,13 +134,14 @@ class FuzzerExecutor(object):
                  timeout,
                  filename=None,
                  mail=None,
-                 asan_bin=None):
+                 asan_bin=None,log=None,):
         self.cmd = cmd
         self.output = output
         self.fuzzer = fuzzer
         self.name = name
         self.filename = ".cur_input" if filename is None else filename
         self.mail = mail
+        self.log = log
         self.set_asan_cmd(asan_bin)
 
         self.tmp_dir = tempfile.mkdtemp()
@@ -146,7 +149,7 @@ class FuzzerExecutor(object):
         # self.minimizer = minimizer.TestcaseMinimizer(
         #     cmd, fuzzer_path, self.output, qemu_mode)
         self.import_state()
-        self.state.timeout=timeout
+        self.state.timeout=int(timeout)
         self.make_dirs()
         atexit.register(self.cleanup)
 
@@ -164,11 +167,15 @@ class FuzzerExecutor(object):
 
     @property
     def fuzzer_queue(self):
-        return os.path.join(self.fuzzer_dir, "seed")
+        return os.path.join(self.fuzzer_dir, "queue")
 
     @property
     def fuzzer_lenconfig(self):
         return os.path.join(self.fuzzer_queue, ".state/lenconfig")
+    
+    @property
+    def fuzzer_targetList(self):
+        return os.path.join(self.fuzzer_queue, ".state/linelist")
 
     @property
     def my_dir(self):
@@ -201,6 +208,13 @@ class FuzzerExecutor(object):
     @property
     def bitmap(self):
         return os.path.join(self.my_dir, "bitmap")
+    
+    @property
+    def my_log(self):
+        if self.log is not None:
+            return os.path.join(self.my_dir, self.log)
+        else:
+            return None
 
     def set_asan_cmd(self, asan_bin):
         symbolizer = ""
@@ -220,12 +234,17 @@ class FuzzerExecutor(object):
             self.asan_cmd = None
 
     def make_dirs(self):
-        mkdir(self.tmp_dir)
+        # mkdir(self.tmp_dir)
         mkdir(self.my_queue)
         mkdir(self.my_state)
         mkdir(self.my_lenconfig)
         mkdir(self.my_hangs)
         mkdir(self.my_errors)
+        if self.my_log is not None:
+            mkdir(self.my_log)
+        else:
+            mkdir(self.tmp_dir)
+        
 
     def parse_fuzzer_stats(self):
         cmd = get_fuzzer_cmd(os.path.join(self.fuzzer_dir, "fuzzer_stats"))
@@ -257,14 +276,31 @@ class FuzzerExecutor(object):
         config = os.path.join(self.fuzzer_lenconfig, config_name)
         shutil.copy2(config, self.cur_lenconfig)
 
+    def set_targetList(self, fp):
+        targetList_name = os.path.basename(fp).split(",")[0] + ",linelist"
+        targetList = os.path.join(self.fuzzer_targetList, targetList_name)
+        print(targetList)
+        if os.path.exists(targetList):
+            self.targetList = targetList
+        else:
+            self.targetList = None
+
+
     def run_target(self):
         # Trigger linearlize to remove complicate expressions
+        log_dir = ""
+        if self.my_log is not None:
+            log_dir = self.my_log
+        else:
+            log_dir = self.tmp_dir
         q = executor.Executor(self.cmd,
                               self.cur_input,
-                              self.tmp_dir,
+                              log_dir,
                               bitmap=self.bitmap,
+                              target_list=self.targetList,
                               argv=["-l", "1"])
-        logger.debug("timeout = %d", self.state.timeout)
+        logger.debug("targetList = %s", self.targetList)
+        logger.debug("timeout = %s", self.state.timeout)
         ret = q.run(self.state.timeout)
         logger.debug("Total=%d s, Emulation=%d s, Solver=%d s, Return=%d" %
                      (ret.total_time, ret.emulation_time, ret.solving_time,
@@ -385,6 +421,8 @@ class FuzzerExecutor(object):
             self.state.increase_timeout()
         else:
             logger.debug("Sleep for getting files")
+            logger.debug("timeout = %s", self.state.timeout)
+            logger.debug("hang number = %d", len(self.state.hang))
             time.sleep(5)
 
     def run(self):
@@ -407,6 +445,7 @@ class FuzzerExecutor(object):
         # copy the test case
         shutil.copy2(fp, self.cur_input)
         self.copy_lenconfig(fp)
+        self.set_targetList(fp)
 
         old_idx = self.state.index
         logger.debug("Run qsym: input=%s" % fp)
@@ -428,19 +467,19 @@ class FuzzerExecutor(object):
                                     "id:%06d,src:%s" % (index, target))
             configname = os.path.join(self.my_lenconfig,
                                       "id:%06d,lenconfig" % (index))
-            shutil.move(testcase, filename)
+            shutil.copy2(testcase, filename)
             shutil.copy2(self.cur_lenconfig, configname)
             logger.debug("Creating: %s" % filename)
             logger.debug("Creating: %s" % configname)
             
-            client = client.SymClient()
-            client.sendData(filename, configname)
-            client.close()
+            # client = client.SymClient()
+            # client.sendData(filename, configname)
+            # client.close()
 
         # if os.path.exists(q.log_file):
         #     os.unlink(q.log_file)
 
-        # # Remove testcase_dir if it`s empty
+        # Remove testcase_dir if it`s empty
         # try:
         #     os.rmdir(q.testcase_directory)
         # except Exception:

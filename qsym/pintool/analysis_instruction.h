@@ -92,6 +92,9 @@ void analyzeVpshift(INS ins, Kind kind, UINT width);
 void analyzeVpack(INS ins, UINT width, bool sign);
 
 void analyzeRet(INS ins);
+void analyzeTail(INS ins, TRACE trace);
+void analyzeFoo(RTN fooRtn);
+void analyzeMain(RTN mainRtn);
 
 } // namespace qsym
 

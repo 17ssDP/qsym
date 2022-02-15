@@ -131,7 +131,9 @@ public:
       return;
     }
     else {
+      // LOG_DEBUG("call clear ExprFromMem\n");
       clearExprFromMem(addr);
+      // LOG_DEBUG("call getExprPtrFromMem\n");
       *getExprPtrFromMem(addr) = e;
     }
   }
@@ -165,10 +167,13 @@ public:
         + ", size=" + hexstr(size) + "\n");
     for (INT32 i = 0; i < size; i++)
       makeExpr(addr + i);
+    LOG_DEBUG("After make Expr\n");
   }
 
   inline void makeExpr(ADDRINT addr) {
+    LOG_DEBUG("Enter makeExpr and call createRead\n");
     ExprRef e = g_expr_builder->createRead(off_++);
+    LOG_DEBUG("Finish call createRead, cread expr "  + e->toString() + " and call setExprToMem\n");
     setExprToMem(addr, e);
   }
 
@@ -202,12 +207,17 @@ protected:
   }
 
   inline ExprRef* getExprPtrFromMem(ADDRINT addr) {
+    //LOG_DEBUG("call getPage\n");
     ExprRef* page = getPage(addr);
+    //LOG_DEBUG("after call getPage\n");
     // NOTE: this could happen due to ASLR
     // If we have better way to find stack address,
     // then this code could be removed
-    if (page == NULL)
+    if (page == NULL) {
+      //LOG_DEBUG("zero page\n");
       return zero_page_;
+    }
+    //LOG_DEBUG("call addressToOffset\n");
     return &page[addressToOffset(addr)];
   }
 

@@ -6,12 +6,11 @@
 
 namespace qsym {
 
-void
-analyzeTrace(TRACE, VOID*);
+void analyzeTrace(TRACE, VOID*);
 
-void
-analyzeInstruction(INS);
+void analyzeInstruction(INS);
 
+void analyzeImage(IMG img, void* v);
 } // namespace qsym
 
 #endif // QSYM_ANALYZE_H_

@@ -1,10 +1,8 @@
 #ifndef QSYM_SYSCALL_DESC_H_
 #define QSYM_SYSCALL_DESC_H_
 
-#include <sys/syscall.h>
 #include <linux/version.h>
 #include "syscall_context.h"
-#include "compiler.h"
 
 namespace qsym {
 
@@ -16,7 +14,6 @@ typedef struct {
 	void	(* pre)(SyscallContext*);
 	void	(* post)(SyscallContext*);
 } SyscallDesc;
-
 
 void initializeSyscallDesc();
 int setSyscallPre(SyscallDesc *desc, void (* pre)(SyscallContext*));

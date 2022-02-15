@@ -26,7 +26,8 @@ def parse_args():
     p.add_argument("-f", dest="filename", default=None)
     p.add_argument("-m", dest="mail", default=None)
     p.add_argument("-b", dest="asan_bin", default=None)
-    p.add_argument("-t", dest="timeout", default=120)
+    p.add_argument("-t", dest="timeout", default=1200)
+    p.add_argument("-l", dest="log", default=None)
     p.add_argument(
         "cmd", nargs="+", help="cmdline, use %s to denote a file" % qsym.utils.AT_FILE)
     return p.parse_args()
@@ -57,14 +58,14 @@ def mk_dirs(output, fuzzer):
 
 def main():
     args = parse_args()
-    mk_dirs(args.output, args.fuzzer)
+    # mk_dirs(args.output, args.fuzzer)
     # check_args(args)
     
-    server = qsym.server.SymServer(args.output, args.fuzzer)
-    server.start()
+    # server = qsym.server.SymServer(args.output, args.fuzzer)
+    # server.start()
 
     e = qsym.fuzzer.FuzzerExecutor(args.cmd, args.output, args.fuzzer,
-                                   args.name, args.timeout, args.filename, args.mail, args.asan_bin)
+                                   args.name, args.timeout, args.filename, args.mail, args.asan_bin, args.log)
     try:
         e.run()
     finally:

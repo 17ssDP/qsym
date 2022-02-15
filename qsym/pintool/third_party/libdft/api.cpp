@@ -12,7 +12,8 @@ namespace qsym {
 extern Memory       g_memory;
 extern REG          g_thread_context_reg;
 extern Solver        *g_solver;
-
+extern PIN_LOCK     pinlock;
+extern bool         enter_main;
 
 bool kDynLdLnkLoaded = false;
 
@@ -73,13 +74,16 @@ exceptionHandler(THREADID tid, EXCEPTION_INFO *pExceptInfo,
 
 static inline void
 allocateThreadContext(THREADID tid, CONTEXT* ctx, INT32 flags, VOID* v) {
+  // PIN_GetLock(&pinlock, tid + 1);
   g_memory.allocateStack(PIN_GetContextReg(ctx, REG_STACK_PTR));
   ThreadContext* thread_ctx = new ThreadContext();
   PIN_SetContextReg(ctx, g_thread_context_reg, (ADDRINT)thread_ctx);
+  // PIN_ReleaseLock(&pinlock);
 }
 
 static inline void
 freeThreadContext(THREADID tid, const CONTEXT* ctx, INT32 code, VOID* v) {
+  LOG_INFO("Thread " + decstr(tid) + "exist\n");
   ThreadContext* thread_ctx =
     reinterpret_cast<ThreadContext*>(PIN_GetContextReg(ctx, g_thread_context_reg));
   delete thread_ctx;
@@ -97,21 +101,34 @@ initializeThreadContext() {
 static inline void
 initializeMemory() {
   g_memory.initialize();
-	IMG_AddInstrumentFunction(loadImage, NULL);
+  IMG_AddInstrumentFunction(loadImage, NULL);
 }
 
 static void
 onSyscallEnter(THREADID tid, CONTEXT* ctx, SYSCALL_STANDARD std, VOID* v) {
+  // if(!enter_main) {
+  //   return;
+  // }
+  if(tid != 0) {
+    return;
+  }
   ThreadContext* thread_ctx = reinterpret_cast<ThreadContext*>(
       PIN_GetContextReg(ctx, g_thread_context_reg));
-  thread_ctx->onSyscallEnter(ctx, std);
+  LOG_INFO("REG " + REG_StringShort(g_thread_context_reg) + "ThreadContext " + hexstr(thread_ctx) + "\n");
+  thread_ctx->onSyscallEnter(ctx, std, tid);
 }
 
 static void
 onSyscallExit(THREADID tid, CONTEXT* ctx, SYSCALL_STANDARD std, VOID* v) {
+  // if (!enter_main) {
+  //   return;
+  // }
+  if (tid != 0) {
+    return;
+  }
   ThreadContext* thread_ctx = reinterpret_cast<ThreadContext*>(
       PIN_GetContextReg(ctx, g_thread_context_reg));
-  thread_ctx->onSyscallExit(ctx, std);
+  thread_ctx->onSyscallExit(ctx, std, tid);
   thread_ctx->clearExprFromReg(getAx(sizeof(ADDRINT)));
 }
 
@@ -121,6 +138,7 @@ void initializeQsym() {
 
 	PIN_AddSyscallEntryFunction(onSyscallEnter, NULL);
 	PIN_AddSyscallExitFunction(onSyscallExit, NULL);
+	IMG_AddInstrumentFunction(analyzeImage, 0);
 	TRACE_AddInstrumentFunction(analyzeTrace, NULL);
 	PIN_AddInternalExceptionHandler(exceptionHandler, NULL);
 }

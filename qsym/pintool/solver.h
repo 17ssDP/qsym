@@ -46,6 +46,7 @@ public:
 
   ADDRINT last_pc() { return last_pc_; }
   void setTargetList(const std::string path);
+  bool targetIsEmpty();
   bool isTarget(std::string addr);
   
  protected:

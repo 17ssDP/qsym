@@ -63,6 +63,11 @@ SANITY_SUBSET := $(TEST_TOOL_ROOTS) $(TEST_ROOTS)
 ifeq ($(shell lsb_release -sr), 16.04)
   TOOL_CXXFLAGS += -fabi-version=2 -D_GLIBCXX_USE_CXX11_ABI=0
 endif
+# Hack for 18.04
+ifeq ($(shell lsb_release -sr), 18.04)
+  TOOL_CXXFLAGS += -fabi-version=2 -D_GLIBCXX_USE_CXX11_ABI=0
+endif
+
 
 TOOL_CXXFLAGS += -I$(CURDIR)
 TOOL_CXXFLAGS += -g -Wno-error=unused-function -std=c++11 -DCONFIG_CONTEXT_SENSITIVE

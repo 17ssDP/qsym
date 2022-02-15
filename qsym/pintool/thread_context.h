@@ -47,8 +47,8 @@ class ThreadContext {
       initializeMapRegToAddr();
     }
 
-    void onSyscallEnter(CONTEXT* ctx, SYSCALL_STANDARD std);
-    void onSyscallExit(CONTEXT* ctx, SYSCALL_STANDARD std);
+    void onSyscallEnter(CONTEXT* ctx, SYSCALL_STANDARD std, THREADID tid);
+    void onSyscallExit(CONTEXT* ctx, SYSCALL_STANDARD std, THREADID tid);
 
     inline void clearExprFromReg(REG r, INT32 off=0, INT32 size=-1) {
       ADDRINT addr = regToRegAddr(r) + off;
@@ -170,6 +170,11 @@ class ThreadContext {
       return eflags_.computeJccAsBV(ctx, JCC_B, false, size);
     }
 
+    inline ExprRef getExprFromRegAddr(ADDRINT addr) {
+      // similar with memory case
+      return *getExprPtrFromRegAddr(addr);
+    }
+
   protected:
     SyscallContext syscall_ctx_;
     Eflags eflags_;
@@ -213,11 +218,6 @@ class ThreadContext {
         clearExprFromRegAddr(addr);
         *getExprPtrFromRegAddr(addr) = e;
       }
-    }
-
-    inline ExprRef getExprFromRegAddr(ADDRINT addr) {
-      // similar with memory case
-      return *getExprPtrFromRegAddr(addr);
     }
 
     inline ExprRef getExprFromRegAddr(const CONTEXT* ctx, ADDRINT addr, INT32 size) {

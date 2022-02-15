@@ -1131,8 +1131,7 @@ analyzeNegNot(INS ins, Kind kind) {
     (AFUNPTR)instrumentNegNotMem);
 }
 
-void
-analyzeJcc(INS ins, JccKind jcc_kind, bool inv) {
+void analyzeJcc(INS ins, JccKind jcc_kind, bool inv) {
   INS_InsertCall(ins,
       IPOINT_BEFORE,
       (AFUNPTR)instrumentJcc,
@@ -1675,6 +1674,10 @@ void analyzeConcretizeReg(INS ins, INT32 i) {
 }
 
 void analyzeConcretizeMem(INS ins, INT32 i, INT32& count) {
+  if (INS_Mnemonic(ins) == "XSAVE" || INS_Mnemonic(ins) == "XRSTOR" ||
+      INS_Mnemonic(ins) == "XSAVEC") {
+    return;
+  }
   IARG_TYPE addr_ty, size_ty;
   getMemoryType(ins, i, count, addr_ty, size_ty);
   INS_InsertCall(ins,
@@ -1857,6 +1860,49 @@ void analyzeRet(INS ins) {
       IARG_CPU_CONTEXT,
       IARG_BRANCH_TARGET_ADDR,
       IARG_END);
+}
+
+void analyzeTail(INS ins, TRACE trace) {
+  if (INS_IsCall(ins)) {
+    if (INS_IsDirectBranchOrCall(ins)) {
+      const ADDRINT target = INS_DirectBranchOrCallTargetAddress(ins);
+      INS_InsertPredicatedCall(ins, IPOINT_BEFORE, (AFUNPTR)printFuncName,
+                               IARG_PTR, target, IARG_END);
+    } else {
+      INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)printIndirectFuncName,
+                     IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN, IARG_END);
+    }
+  } else {
+    RTN rtn = TRACE_Rtn(trace);
+    if (RTN_Valid(rtn) && !INS_IsDirectBranchOrCall(ins) &&
+        ".plt" == SEC_Name(RTN_Sec(rtn))) {
+      INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)printIndirectFuncName,
+                     IARG_BRANCH_TARGET_ADDR, IARG_BRANCH_TAKEN, IARG_END);
+    }
+  }
+}
+
+void analyzeFoo(RTN fooRtn) {
+  RTN_Open(fooRtn);
+  RTN_InsertCall(fooRtn, IPOINT_BEFORE, AFUNPTR(instrumentFoo),
+                 IARG_FAST_ANALYSIS_CALL, 
+                 IARG_CPU_CONTEXT,
+                 IARG_FUNCARG_ENTRYPOINT_REFERENCE, 0,
+                 IARG_FUNCARG_ENTRYPOINT_VALUE, 1, IARG_END);
+  RTN_Close(fooRtn);
+}
+
+void analyzeMain(RTN mainRtn) {
+  RTN_Open(mainRtn);
+  RTN_InsertCall(mainRtn, IPOINT_BEFORE, (AFUNPTR)instrumentMainEnter,
+                 IARG_FAST_ANALYSIS_CALL, IARG_CPU_CONTEXT,
+                 IARG_FUNCARG_ENTRYPOINT_REFERENCE, 0,
+                 IARG_FUNCARG_ENTRYPOINT_VALUE, 1, IARG_END);
+  RTN_InsertCall(mainRtn, IPOINT_AFTER, (AFUNPTR)instrumentMainReturn,
+                 IARG_FAST_ANALYSIS_CALL, IARG_CPU_CONTEXT,
+                 IARG_FUNCARG_ENTRYPOINT_REFERENCE, 0,
+                 IARG_FUNCARG_ENTRYPOINT_VALUE, 1, IARG_END);
+  RTN_Close(mainRtn);
 }
 
 } // namespace qsym

@@ -1,5 +1,6 @@
 #include "syscall_hook.h"
 #include "memory.h"
+#include "logging.h"
 
 #include <unistd.h>
 #include <cstdio>
@@ -10,7 +11,7 @@
 namespace qsym {
 
 set<int>     kFdSet;
-std::string  kInput;
+std::string kInput;
 
 extern SyscallDesc  kSyscallDesc[kSyscallMax];
 extern Memory g_memory;
@@ -27,14 +28,13 @@ void postDupHook(SyscallContext *ctx) {
     kFdSet.insert((int)ctx->ret);
 }
 
-void
-postReadHook(SyscallContext *ctx) {
+void postReadHook(SyscallContext *ctx) {
   if (unlikely((long)ctx->ret <= 0))
     return;
-
   // taint-source
-  if (kFdSet.find(ctx->arg[SYSCALL_ARG0]) != kFdSet.end())
+  if (kFdSet.find(ctx->arg[SYSCALL_ARG0]) != kFdSet.end()) {
     g_memory.makeExpr(ctx->arg[SYSCALL_ARG1], ctx->ret);
+  }
   else
     g_memory.clearExprFromMem(ctx->arg[SYSCALL_ARG1], ctx->ret);
 }
@@ -46,6 +46,7 @@ postPreadHook(SyscallContext *ctx) {
 
   // taint-source
   if (kFdSet.find(ctx->arg[SYSCALL_ARG0]) != kFdSet.end()) {
+    LOG_DEBUG("Pread from taint-source\n");
     ADDRINT old_pos = g_memory.tell();
     g_memory.lseek(ctx->arg[SYSCALL_ARG3]);
     g_memory.makeExpr(ctx->arg[SYSCALL_ARG1], ctx->ret);
@@ -264,18 +265,19 @@ postOpenHook(SyscallContext *ctx) {
     return;
 
   // ignore dynamic shared libraries
-  if (strstr((char *)ctx->arg[SYSCALL_ARG0], kInput.c_str()) != NULL)
+  if (strstr((char *)ctx->arg[SYSCALL_ARG0], kInput.c_str()) != NULL) {
+    LOG_DEBUG("Open taint-source\n");
     kFdSet.insert((int)ctx->ret);
+  }
 }
 
-void
-postOpenatHook(SyscallContext *ctx) {
+void postOpenatHook(SyscallContext *ctx) {
   if (unlikely((long)ctx->ret < 0))
     return;
-
   // ignore dynamic shared libraries
-  if (strstr((char *)ctx->arg[SYSCALL_ARG1], kInput.c_str()) != NULL)
+  if (strstr((char *)ctx->arg[SYSCALL_ARG1], kInput.c_str()) != NULL) {
     kFdSet.insert((int)ctx->ret);
+  }
 }
 
 void
@@ -320,6 +322,14 @@ postReadvHook(SyscallContext *ctx) {
   }
 }
 
+void postNanosleepHook(SyscallContext *ctx) {
+  // struct timespec *req;
+  // if (unlikely((long)ctx->ret <= 0)) return;
+  // req = (struct timespec *)ctx->arg[SYSCALL_ARG0];
+  // LOG_INFO("Enter postNanosleepHook\n");
+  // LOG_INFO("Sleep " + to_string(req->tv_sec) + " seconds and " + to_string(req->tv_nsec) + "nanoseconds\n");
+}
+
 void
 postMMapHookForFile(SyscallContext *ctx)
 {
@@ -333,6 +343,7 @@ postMMapHookForFile(SyscallContext *ctx)
   // taint-source
   if (kFdSet.find(ctx->arg[SYSCALL_ARG4]) != kFdSet.end())
   {
+    LOG_DEBUG("MMap taint-source\n");
     size_t length = (size_t)ctx->arg[SYSCALL_ARG1];
     off_t off = 0;
     // off_t off = (off_t)ctx->arg[SYSCALL_ARG5];
@@ -404,6 +415,10 @@ void setMMapHookForFile()
 #endif
 }
 
+void setNanosleepHook() {
+  (void)setSyscallPost(&kSyscallDesc[__NR_nanosleep], postNanosleepHook);
+}
+
 } // anonymous namespace
 
 void hookSyscalls(bool hook_stdin, bool hook_fs, bool hook_net,
@@ -428,6 +443,7 @@ void hookSyscalls(bool hook_stdin, bool hook_fs, bool hook_net,
   setReadHook();
   setCloseHook();
   setDupHook();
+  setNanosleepHook();
 }
 
 } // namespace qsym
