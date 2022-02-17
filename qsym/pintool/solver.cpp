@@ -370,8 +370,11 @@ void Solver::syncConstraints(ExprRef e) {
   for (std::shared_ptr<DependencyTree<Expr>> tree : forest) {
     std::vector<std::shared_ptr<Expr>> nodes = tree->getNodes();
     for (std::shared_ptr<Expr> node : nodes) {
-      if (isRelational(node.get()))
+      if (isRelational(node.get())) {
         addToSolver(node, true);
+        LOG_DEBUG("In syncConstraints after call is Relational " + node->toString() +
+                  "\n");
+      }
       else {
         // Process range-based constraints
         bool valid = false;
@@ -379,6 +382,9 @@ void Solver::syncConstraints(ExprRef e) {
           ExprRef expr_range = getRangeConstraint(node, i);
           if (expr_range != NULL) {
             addToSolver(expr_range, true);
+            LOG_DEBUG("In syncConstraints range-based constraints " + expr_range
+                          ->toString() +
+                      "\n");
             valid = true;
           }
         }
@@ -479,11 +485,15 @@ bool Solver::isInterestingJcc(ExprRef rel_expr, bool taken, ADDRINT pc) {
 void Solver::negatePath(ExprRef e, bool taken, ADDRINT pc) {
   reset();
   syncConstraints(e);
+  LOG_DEBUG("After sysncConstraints " + hexstr(pc) + " " + to_string(pc) + ": " +
+            e->toString() + "\n");
   addToSolver(e, !taken);
   bool sat = checkAndSave();
   if (!sat) {
     reset();
     // optimistic solving
+    LOG_DEBUG("Optimistic solving " + hexstr(pc) + " " + to_string(pc) +
+              ": " + e->toString() + "\n");
     addToSolver(e, !taken);
     checkAndSave("optimistic");
   }

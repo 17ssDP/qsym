@@ -23,11 +23,11 @@ void analyzeTrace(TRACE trace, VOID* v) {
     for (INS ins = BBL_InsHead(bbl);
         INS_Valid(ins);
         ins = INS_Next(ins)) {
-      // if(INS_Address(ins) == main_addr || enter_main) {
-      //   enter_main = true;
-      // }else {
-      //   continue;
-      // }
+      if(INS_Address(ins) == main_addr || enter_main) {
+        enter_main = true;
+      }else {
+        continue;
+      }
       analyzeInstruction(ins);
     }
   }

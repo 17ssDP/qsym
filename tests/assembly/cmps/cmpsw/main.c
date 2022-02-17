@@ -19,8 +19,12 @@ int main() {
       : "=m"(v)
       : "S"(&a), "D"(&b));
 
-  if (v)
+  if (v) {
+    printf("good\n");
     good();
-  else
+  }
+  else {
+    printf("bad\n");
     bad();
+  }
 }

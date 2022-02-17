@@ -1,6 +1,8 @@
 {
     "python.formatting.provider": "black",
     "files.associations": {
-        "*.ph": "cpp"
+        "*.ph": "cpp",
+        "common.h": "c",
+        "algorithm": "c"
     }
 }
