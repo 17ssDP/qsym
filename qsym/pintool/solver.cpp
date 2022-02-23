@@ -529,18 +529,19 @@ void Solver::setTargetList(const std::string path) {
 bool Solver::targetIsEmpty() { return target_branchs_.empty(); }
 
 bool Solver::isTarget(std::string addr) {
-  return true;
+  // return true;
   if (target_branchs_.empty()) {
     return false;
   }
-  if (target_branchs_.size() != 2) {
-    return false;
-  }
+  // if (target_branchs_.size() != 2) {
+  //   return false;
+  // }
   // LOG_DEBUG("target_branches_begin() " + *target_branchs_.begin() + "\n");
-  std::set<std::string>::iterator lower = target_branchs_.begin();
-  return (*lower).compare(addr) <= 0 &&
-         (*(++lower)).compare(addr) > 0;
-  return false;
+  // std::set<std::string>::iterator lower = target_branchs_.begin();
+  // return (*lower).compare(addr) <= 0 &&
+  //        (*(++lower)).compare(addr) > 0;
+  // return false;
+  return target_branchs_.count(addr) > 0;
 }
 
 }  // namespace qsym

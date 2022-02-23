@@ -3,6 +3,7 @@
     "files.associations": {
         "*.ph": "cpp",
         "common.h": "c",
-        "algorithm": "c"
+        "algorithm": "c",
+        "*.tlh": "cpp"
     }
 }

@@ -109,7 +109,11 @@ onSyscallEnter(THREADID tid, CONTEXT* ctx, SYSCALL_STANDARD std, VOID* v) {
   // if(!enter_main) {
   //   return;
   // }
-  if(tid != 0) {
+  // if(tid != 0) {
+  //   return;
+  // }
+  size_t syscall_nr = PIN_GetSyscallNumber(ctx, std);
+  if (syscall_nr == 202) {
     return;
   }
   ThreadContext* thread_ctx = reinterpret_cast<ThreadContext*>(
@@ -123,7 +127,11 @@ onSyscallExit(THREADID tid, CONTEXT* ctx, SYSCALL_STANDARD std, VOID* v) {
   // if (!enter_main) {
   //   return;
   // }
-  if (tid != 0) {
+  // if (tid != 0) {
+  //   return;
+  // }
+  size_t syscall_nr = PIN_GetSyscallNumber(ctx, std);
+  if (syscall_nr == 202) {
     return;
   }
   ThreadContext* thread_ctx = reinterpret_cast<ThreadContext*>(

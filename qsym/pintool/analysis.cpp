@@ -9,10 +9,10 @@ extern bool enter_main;
 extern ADDRINT main_addr;
 
 void analyzeTrace(TRACE trace, VOID* v) {
-  THREADID tid = PIN_ThreadId();
-  if(tid != 0) {
-    return;
-  }
+  // THREADID tid = PIN_ThreadId();
+  // if(tid != 0) {
+  //   return;
+  // }
   for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
     // if(INS_Address(BBL_InsHead(bbl)) == main_addr || enter_main) {
     //   enter_main = true;
@@ -23,11 +23,11 @@ void analyzeTrace(TRACE trace, VOID* v) {
     for (INS ins = BBL_InsHead(bbl);
         INS_Valid(ins);
         ins = INS_Next(ins)) {
-      if(INS_Address(ins) == main_addr || enter_main) {
-        enter_main = true;
-      }else {
-        continue;
-      }
+      // if(INS_Address(ins) == main_addr || enter_main) {
+      //   enter_main = true;
+      // }else {
+      //   continue;
+      // }
       analyzeInstruction(ins);
     }
   }
