@@ -2237,14 +2237,15 @@ instrumentJcc(ThreadContext* thread_ctx,
     trace_addJcc(e, ctx, taken);
 #endif
     g_solver->addJcc(e, taken, pc);
-  } else {
-    ADDRINT pc = PIN_GetContextReg(ctx, REG_INST_PTR);
-    if (g_solver->isTarget(to_string(pc)) ||
-        g_solver->isTarget(to_string(target))) {
-      LOG_DEBUG("Meet target " + to_string(pc) + " or " + to_string(target) +
-                "but not symbolic" + "\n");
-    }
-  }
+  } 
+  // else {
+  //   ADDRINT pc = PIN_GetContextReg(ctx, REG_INST_PTR);
+  //   if (g_solver->isTarget(to_string(pc)) ||
+  //       g_solver->isTarget(to_string(target))) {
+  //     LOG_DEBUG("Meet target " + to_string(pc) + " or " + to_string(target) +
+  //               "but not symbolic" + "\n");
+  //   }
+  // }
 }
 
 void PIN_FAST_ANALYSIS_CALL

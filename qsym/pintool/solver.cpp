@@ -485,8 +485,8 @@ bool Solver::isInterestingJcc(ExprRef rel_expr, bool taken, ADDRINT pc) {
 void Solver::negatePath(ExprRef e, bool taken, ADDRINT pc) {
   reset();
   syncConstraints(e);
-  LOG_DEBUG("After sysncConstraints " + hexstr(pc) + " " + to_string(pc) + ": " +
-            e->toString() + "\n");
+  // LOG_DEBUG("After sysncConstraints " + hexstr(pc) + " " + to_string(pc) + ": " +
+  //           e->toString() + "\n");
   addToSolver(e, !taken);
   bool sat = checkAndSave();
   if (!sat) {
@@ -529,7 +529,7 @@ void Solver::setTargetList(const std::string path) {
 bool Solver::targetIsEmpty() { return target_branchs_.empty(); }
 
 bool Solver::isTarget(std::string addr) {
-  // return true;
+  return true;
   if (target_branchs_.empty()) {
     return false;
   }
