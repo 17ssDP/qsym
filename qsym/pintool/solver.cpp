@@ -372,7 +372,7 @@ void Solver::syncConstraints(ExprRef e) {
     for (std::shared_ptr<Expr> node : nodes) {
       if (isRelational(node.get())) {
         addToSolver(node, true);
-        LOG_DEBUG("In syncConstraints after call is Relational " + node->toString() +
+        LOG_DEBUG("In syncConstraints after call is Relational: " + node->toString() +
                   "\n");
       }
       else {
@@ -382,7 +382,7 @@ void Solver::syncConstraints(ExprRef e) {
           ExprRef expr_range = getRangeConstraint(node, i);
           if (expr_range != NULL) {
             addToSolver(expr_range, true);
-            LOG_DEBUG("In syncConstraints range-based constraints " + expr_range
+            LOG_DEBUG("In syncConstraints range-based constraints: " + expr_range
                           ->toString() +
                       "\n");
             valid = true;

@@ -113,7 +113,7 @@ onSyscallEnter(THREADID tid, CONTEXT* ctx, SYSCALL_STANDARD std, VOID* v) {
   //   return;
   // }
   size_t syscall_nr = PIN_GetSyscallNumber(ctx, std);
-  if (syscall_nr == 202 || syscall_nr = 35) {
+  if (syscall_nr == 202 || syscall_nr == 35) {
     return;
   }
   ThreadContext* thread_ctx = reinterpret_cast<ThreadContext*>(

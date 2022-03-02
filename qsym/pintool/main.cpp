@@ -117,13 +117,13 @@ int main(int argc, char** argv) {
       g_opt_outdir.Value(),
       g_opt_bitmap.Value());
   
-  // if(!g_opt_target_list.Value().empty()) {
-  //   LOG_INFO("Target list name is " + g_opt_target_list.Value() + "\n");
-  //   g_solver->setTargetList(g_opt_target_list.Value());
-  // }else {
-  //   LOG_INFO("No target list is specified\n");
-  //   goto err;
-  // }
+  if(!g_opt_target_list.Value().empty()) {
+    LOG_INFO("Target list name is " + g_opt_target_list.Value() + "\n");
+    g_solver->setTargetList(g_opt_target_list.Value());
+  }else {
+    LOG_INFO("No target list is specified\n");
+    // goto err;
+  }
 
   // if(g_solver->targetIsEmpty()) {
   //   LOG_INFO("Empty target list\n");
